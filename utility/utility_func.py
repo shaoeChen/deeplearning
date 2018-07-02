@@ -51,7 +51,7 @@ def image_to_matrix(path_folder, path_file, image_exten='jpg', as_gray=False, la
     datasets = np.array(_datasets).astype('float32')    
         
     
-    if label_num and isinstance(label_num, int):
+    if isinstance(label_num, int):
         #  必需為int格式
         label = np.ones(len(_datasets)) * label_num      
     else:

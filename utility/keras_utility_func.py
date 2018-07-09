@@ -110,3 +110,54 @@ def model_history_plot(history, epoch):
     
     plt.tight_layout()
     plt.show()
+
+	
+def utils_predict_validator(model, datasets, need_prob=False):
+    """
+    keras預測之後回傳為概率，透過此function可轉為類別
+    再依需求調控是否回傳概率與模型效能評估
+    
+    與utils_predict的不同在於，此function應用於新進資料驗證模型，並且一定執行predict與evaluate
+    
+    parameter:
+        model:keras.model，訓練之後的模型
+        datasets:資料集，格式為dict，索引名稱必需為dataset_vali(X)與label_vali(y)
+            datasets:
+                'dataset_vali':dataset
+                'label_vali':label
+        need_prob:是否回傳概率
+    
+    return:
+        datasets
+            預測類別：
+                vali_predict
+            預測概率：
+                vali_predict_prob
+            模型評估：
+                vali_score
+        
+    datasets:dict    
+    """
+    #  取得資料集與標籤
+    _dataset_vali = datasets['dataset_vali']
+    _label_vali = datasets['label_vali']
+    
+    #  計算最大機率
+    _label_prob = model.predict(_dataset_vali, verbose=1)
+    
+    #  取得最大機率值對應label
+    _labels = _label_prob.argmax(axis=-1)
+    
+    #  資料寫入dict
+    datasets['vali_predict'] = _labels 
+    
+    #  計算模型效能
+    _model_scores = model.evaluate(_dataset_vali, _label_vali)
+
+    #  資料寫入dict
+    datasets['vali_score'] = _model_scores[1]    
+
+    if need_prob:
+        datasets['vali_predict_prob'] = _label_prob
+            
+    return datasets	

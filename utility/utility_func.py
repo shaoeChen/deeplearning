@@ -14,19 +14,22 @@ from skimage import io, color
 import numpy as np
 import math
 
-def image_to_matrix(path_folder, path_file, image_exten='jpg', as_gray=False, label_num=None, gray2img=False):
+
+
+def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
     """
     將資料夾路徑內的所有照片(依image_exten設置)轉為numpy array
     如果需要同步產生等量的label向量可利用label_num來設置    
     環境內必需有安裝skimage，若無法滿足則需另外以pillow來執行，安裝anaconda的時候也會擁有skimage
     
     parameter:
-        path_folder:資料夾路徑
         path_file:檔案清單，格式為list，可利用os.listdir來取得資料夾內的檔案清單
+        path_folder:資料夾路徑，當path_file_only為False的時候不得不None
         image_exten:照片副檔名，預設為jpg
         as_gray:是否灰值化
         label:如果要產生label清單的話就輸入label，會依path_file長度來產生相對長度的類別清單
         gray2img:將灰度圖轉rgb
+        path_file_only:部份情況下可能可以直接提供整個檔案清單，設置為True可不設置path_folder
     
     return:
         datasets:numpy array(m, n_h, n_w, n_c)
@@ -34,21 +37,38 @@ def image_to_matrix(path_folder, path_file, image_exten='jpg', as_gray=False, la
         label:numpy array，該資料夾的label(m, )
         
     example:
-        取得一個dataset，副檔名為bmp，label為1
-        ds_ng_1, ds_label_1 = image_to_matrix(path_ng_1, file_ng_1, 'bmp', False, 1, True)        
+        1. 使用path_file搭配path_folder
+            取得一個dataset，副檔名為bmp，label為1
+            ds_ng_1, ds_label_1 = image_to_matrix(file_ng_1, path_ng_1, 'bmp', False, 1)        
+        2. 也可以試著利用glob來取得檔案清單
+            full_path = glob.glob('d:\abc\*.jpg')
+            這樣就可以取得abc資料夾底下所有的jpg的完整路徑清單
+            ds_ng1, ds_label_1 = image_to_matrix(full_path, None, jpg, False, 1, False, True)
     """
+    #  如果不是單純的上傳檔案路徑清單則path_folder一定要有東西，不能為None
+    if path_file_only == False:
+        if path_folder is None:
+            return None, None
+    
     _datasets = []
     for file in path_file:       
         if file.endswith(image_exten):
             if gray2img:
-                img_gray = io.imread(path_folder + file, as_grey=as_gray)
+                if path_file_only:
+                    img_gray = io.imread(file, as_grey=as_gray)
+                else:
+                    img_gray = io.imread(path_folder + file, as_grey=as_gray)
                 img = color.gray2rgb(img_gray)
                 _datasets.append(img)
             else:
-                _datasets.append(io.imread(path_folder + file, as_grey=as_gray))
-        continue
+                if path_file_only:
+                    _datasets.append(io.imread(file, as_grey=as_gray))
+                else:
+                    _datasets.append(io.imread(path_folder + file, as_grey=as_gray))
+        else:
+            continue
             
-    datasets = np.array(_datasets).astype('float32')    
+    datasets = np.array(_datasets)
         
     
     if isinstance(label_num, int):
@@ -132,9 +152,13 @@ def plt_image(images, labels, predict_labels=[], idx_start=0, idx_batch_size=10,
     當每次讀取批量>20的時候會以20取值
     如果照片想要大點來看，就必需將cel_num設置小一點，然後設置size為big或是middle
     """
-    #  判斷索引值是否超過10，若超過20則idx_batch_size重新賦值
+    #  判斷索引值是否超過20，若超過20則idx_batch_size重新賦值
     if idx_batch_size > 20:
         idx_batch_size = 20   
+        
+    #  0713_加入判斷，當資料筆數已不足idx_batch_size，則以資料量為主
+    if images.shape[0] < idx_batch_size:
+        idx_batch_size = images.shape[0]
     
     rows = int(math.ceil(idx_batch_size / cel_num))
     

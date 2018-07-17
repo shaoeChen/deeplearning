@@ -7,6 +7,7 @@ Created on Fri Jun 29 13:06:02 2018
         1. 照片轉矩陣:image_to_matrix
         2. 資料分割並做亂數排序:shuffle_index
         3. 照片檢閱:plt_image
+		4. 照片維度檢核:dimension_check
 @author: marty.chen
 """
 
@@ -68,7 +69,7 @@ def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=Fals
         else:
             continue
             
-    datasets = np.array(_datasets)
+    datasets = np.asarray(_datasets)
         
     
     if isinstance(label_num, int):
@@ -188,3 +189,45 @@ def plt_image(images, labels, predict_labels=[], idx_start=0, idx_batch_size=10,
     #  確保資料呈現正常    
     plt.tight_layout()    
     plt.show()        
+	
+from skimage import io
+import numpy as np
+
+
+def dimension_check(vali_shape, path_file, image_exten='jpg', path_folder=None, path_file_only=False):
+    """
+    description:
+        照片維度驗證，不少情況下資料集內總是會躲著大小與需求維度不同的照片，透過簡單的function做一個快速的檢核 
+        將維度與需求不符的照片列出，方便排除
+        
+    parameter:
+        vali_shape:tuple，驗證的dimension(n_H, n_W, n_C)
+        path_file:檔案清單，格式為list，可利用os.listdir來取得資料夾內的檔案清單，或利用glob取得清單
+        path_folder:資料夾路徑，當path_file_only為False的時候不得不None
+        image_exten:照片副檔名，預設為jpg
+        path_file_only:部份情況下可能可以直接提供整個檔案清單，設置為True可不設置path_folder
+        
+    return:
+        沒有回傳
+        
+    example:
+        利用glob取得清單:
+            full_path = glob.glob('d:\abc\*.jpg')
+            vali_shape=(155, 298, 3)
+            dimension_check(vali_shape, full_path, 'jpg', None, True)
+    """
+    if path_file_only == False:
+        if path_folder is None:
+            #  利用return來中斷後面程序
+            return None
+        
+    for file in path_file:       
+        if file.endswith(image_exten):
+            if path_file_only:        
+                if io.imread(file).shape != vali_shape:
+                    print('dimension_error:%s' % file)
+            else:
+                if io.imread(path_folder + file) != vali_shape:
+                    print('dimension_error:%s' % file)
+        else:
+            continue  	

@@ -14,7 +14,7 @@ Created on Fri Jun 29 13:06:02 2018
 from skimage import io, color
 import numpy as np
 import math
-
+import matplotlib.pyplot as plt
 
 
 def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
@@ -190,8 +190,7 @@ def plt_image(images, labels, predict_labels=[], idx_start=0, idx_batch_size=10,
     plt.tight_layout()    
     plt.show()        
 	
-from skimage import io
-import numpy as np
+
 
 
 def dimension_check(vali_shape, path_file, image_exten='jpg', path_folder=None, path_file_only=False):

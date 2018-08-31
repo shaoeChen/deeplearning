@@ -230,11 +230,9 @@ def dimension_check(vali_shape, path_file, image_exten='jpg', path_folder=None, 
             if path_file_only:        
                 if io.imread(file).shape != vali_shape:
                     print('dimension_error:%s' % file)
-            else:
-                if io.imread(path_folder + file) != vali_shape:
+            else:                
+                if io.imread(os.path.join(path_folder,file)).shape != vali_shape:
                     print('dimension_error:%s' % file)
-        else:
-            continue  	
             
 def random_batch(datasets, label, batch_size=64, seed=0):
     """

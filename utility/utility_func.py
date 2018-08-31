@@ -16,6 +16,10 @@ from skimage import io, color
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import os
+import glob
+import shutil
+import random
 
 
 def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
@@ -282,3 +286,68 @@ def random_batch(datasets, label, batch_size=64, seed=0):
         batches.append((batch_X, batch_y))
         
     return batches
+	
+
+
+def move_file(source_data_path, subfolder_path, move_number, move_to_folder='test', random_seed=10):
+    """
+    description:
+        模型訓練的時候如果有需求區分資料集為訓練資料集與測試資料集，讓keras可以至指定資料集直接讀取資料的時候
+        可以利用這個function，指定資料集以及切割數量，快速將實體資料集分成兩個資料夾
+        只針對jpg結尾檔案有效果，如有其餘需求再自行調整即可
+        當move_number比該資料夾內檔案清單來的少的時候，會單純搬運該資料夾內數量
+        
+    parameter:
+        source_data_path: 完整資料集來源資料夾
+        subfolder_path: 完整資料集來源資料夾內的分類資料集
+            實務上我們在區分資料的時候可能會分成貓、狗、豬並分三個資料夾存放，這邊即設置貓、狗、豬
+        move_number: 搬移數量
+            會將相對應的數量搬至指定資料夾
+        move_to_folder: 預設將分割資料搬至source_data_path目錄下的test資料夾
+            保存於test\subfolder_path\，避免搬移之後忘記自己搬去那了
+        random_seed: 亂數種子
+        
+    example:
+        資料結構如下：
+            d:\data_source\
+                貓\
+                狗\
+                豬\
+        source_data_path='d:\data_source'
+        subfolder_path='狗'
+        move_to_folder='test'
+            搬移之後檔案會轉過去d:\data_source\test\狗
+	    
+		
+    """
+    _exten = 'jpg'
+    
+    #  預計搬移的資料夾路徑組合成絕對路徑
+    move_to_folder = os.path.join(source_data_path, move_to_folder)
+    
+    #  判斷資料夾是否存在
+    if os.path.exists(move_to_folder):
+        #  當資料夾存在的時候還需要進一步確認該資料夾下是否有subfolder_path
+        if not os.path.exists(os.path.join(move_to_folder, subfolder_path)): 
+            os.mkdir(os.path.join(move_to_folder, subfolder_path))
+    else:
+        #  如果不存在就代表連subfolder_path也不存在，直接一併建立
+        os.makedirs(os.path.join(move_to_folder, subfolder_path))
+        
+    
+    #  取得該子資料集路徑內的所有資料清單
+    #  沒特別需求情況下預設為jpg
+    data_list = glob.glob(os.path.join(data_folder_path, subfolder_path) + '\*.' + _exten)
+    #  取得路徑檔案總數
+    data_number = len(data_list)
+    #  當分割數比檔案還多的時候就讓分割數等同數量即可，不拋出異常
+    if data_number < move_number:
+        move_number = data_number
+        
+    #  亂數取得要搬移的檔案索引
+    random.seed(random_seed)
+    random_index = random.sample(range(data_number), move_number)
+
+    #  檔案搬運
+    for index in random_index:
+        shutil.move(data_list[index], os.path.join(move_to_folder, subfolder_path))	

@@ -337,7 +337,7 @@ def move_file(source_data_path, subfolder_path, move_number, move_to_folder='tes
     
     #  取得該子資料集路徑內的所有資料清單
     #  沒特別需求情況下預設為jpg
-    data_list = glob.glob(os.path.join(move_to_folder, subfolder_path) + '\*.' + _exten)
+    data_list = glob.glob(os.path.join(source_data_path, subfolder_path) + '\*.' + _exten)
     #  取得路徑檔案總數
     data_number = len(data_list)
     #  當分割數比檔案還多的時候就讓分割數等同數量即可，不拋出異常

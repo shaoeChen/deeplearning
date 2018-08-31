@@ -8,6 +8,7 @@ Created on Fri Jun 29 13:06:02 2018
         2. 資料分割並做亂數排序:shuffle_index
         3. 照片檢閱:plt_image
 		4. 照片維度檢核:dimension_check
+        5. 資料分割小批量:random_batch
 @author: marty.chen
 """
 
@@ -230,3 +231,54 @@ def dimension_check(vali_shape, path_file, image_exten='jpg', path_folder=None, 
                     print('dimension_error:%s' % file)
         else:
             continue  	
+            
+def random_batch(datasets, label, batch_size=64, seed=0):
+    """
+    describe:  
+        在實作mini_batch的時候記得資料集跟label要一起當參數，因為兩者之間的關聯還是必需保存
+        需注意資料格式為(特徵n, 資料集m)
+        
+    parameter:
+        datasets:資料集(X)，dimension需為(n, m)
+        label:標籤(y)，dimension需為(類別數, m)
+        batch_size:每次訓練批量
+        seed:亂數種子
+        
+    return:
+        batch:[(X, y)]，格式為list，裡面的各小批量資料集為tuple
+        
+    example:
+        dataset:(784, 50000)
+        leabel:(10, 50000)
+        
+        batches = random_batch(dataset, label, batch_size=64, seed=10)
+        for batch in batches:
+            batch_X, batch_y = batch
+            .....
+    """
+    #  先取得資料集總數，習慣上使用m，這是因為學習來自andrew的課程
+    m = datasets.shape[0]
+    batches = []
+    np.random.seed(seed)
+    
+    #  利用np.random.permutation來取得資料集的亂數索引之後再重新調整資料索引
+    #  這樣子資料集與label就有相同的索引排序了
+    shuffle_index = np.random.permutation(m)
+    shuffle_X = datasets[:, shuffle_index]
+    shuffle_y = label[:, shuffle_index]
+    
+    #  計算需調整為幾個batch
+    batch_num = math.floor(m / batch_size)
+    for i in range(batch_num):
+        #  每次取一個batch_size，代表每次取batch_size到batch_size+batch_size的切片
+        batch_X = shuffle_X[:, batch_size * i: batch_size * i + batch_size]
+        batch_y = shuffle_y[:, batch_size * i: batch_size * i + batch_size]
+        batches.append((batch_X, batch_y))
+        
+    #  餘數沒有辦法處理的
+    if m % batch_size != 0:
+        batch_X = shuffle_X[:, batch_size * batch_num: m]
+        batch_y = shuffle_y[:, batch_size * batch_num: m]
+        batches.append((batch_X, batch_y))
+        
+    return batches

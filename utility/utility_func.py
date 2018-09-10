@@ -22,7 +22,7 @@ import shutil
 import random
 
 
-def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
+def image_to_matrix1(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
     """
     將資料夾路徑內的所有照片(依image_exten設置)轉為numpy array
     如果需要同步產生等量的label向量可利用label_num來設置    
@@ -63,14 +63,14 @@ def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=Fals
                 if path_file_only:
                     img_gray = io.imread(file, as_grey=as_gray)
                 else:
-                    img_gray = io.imread(path_folder + file, as_grey=as_gray)
+                    img_gray = io.imread(os.path.join(path_folder, file), as_grey=as_gray)
                 img = color.gray2rgb(img_gray)
                 _datasets.append(img)
             else:
                 if path_file_only:
                     _datasets.append(io.imread(file, as_grey=as_gray))
                 else:
-                    _datasets.append(io.imread(path_folder + file, as_grey=as_gray))
+                    _datasets.append(io.imread(os.path.join(path_folder, file), as_grey=as_gray))
         else:
             continue
             

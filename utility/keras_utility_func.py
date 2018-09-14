@@ -224,15 +224,15 @@ def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0,
         file_path = os.path.join(generator.directory,generator.filenames[idx])
         true_label = generator.classes[idx]
         try:
-            predict_labels = predict_labels[idx]
+            predict_label = predict_labels[idx]
         except IndexError:
-            predict_labels is None
+            predict_label is None
 
         files.append(
             (
                 file_path, 
                 true_label, 
-                predict_labels,
+                predict_label,
                 idx
             )
         )

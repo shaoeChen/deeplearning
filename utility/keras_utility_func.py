@@ -5,9 +5,13 @@ Created on Fri Jun 29 13:32:44 2018
     keras的擴充實用小工具，需應用在有安裝keras的平台
     1. 預測概率轉標籤:utils_predict
     2. 產生圖面:model_history_plot
+	3. utils_predict_validator
+	4. plt_image_from_generator
 @author: marty.chen
 """
 import matplotlib.pyplot as plt
+from skimage import io
+import numpy as np
 
 def utils_predict(model, datasets, evaluate=True, need_prob=False):
     """
@@ -161,3 +165,96 @@ def utils_predict_validator(model, datasets, need_prob=False):
         datasets['vali_predict_prob'] = _label_prob
             
     return datasets	
+	
+def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0, idx_batch_size=10, cel_num=5, fig_size='big'):
+    """
+    用來檢閱照片，了解各照片的原始label與預測的label，以便於理解誤判原因
+    此function需搭配keras.generator使用，利用生成器取得照片
+    
+    parameter:
+        generator: 來源照片生成器        
+        mask: 切片遮罩
+            如果想針對錯誤資料做檢閱，就可以先設置一個錯誤資料遮罩做為參數
+        predict_labels: 預測照片類別
+        idx_start: 起始索引
+            預設為0
+        idx_batch_size: 每次讀取量
+            預設為10
+        cel_num: 每row顯示幾張照片
+            預設為5
+        fig_size: figure.figsize設置
+            big: 16,9
+            middle: 12,7
+            small: 8,4
+        
+    當每次讀取批量>20的時候會以20取值
+    如果照片想要大點來看，就必需將cel_num設置小一點，然後設置size為big或是middle
+    
+    example:
+        plt_image_from_generator(generator=train_generator, 
+                         mask=mask_train,
+                         predict_labels=train_predict)
+    """
+    #  判斷索引值是否超過20，若超過20則idx_batch_size重新賦值
+    if idx_batch_size > 20:
+        idx_batch_size = 20   
+        
+    #  0713_加入判斷，當資料筆數不足idx_batch_size，則以資料量為主
+    if generator.samples < idx_batch_size:
+        idx_batch_size = generator.samples
+    
+    rows = int(math.ceil(idx_batch_size / cel_num))
+    
+    if fig_size=='big':
+        _size=(16, 9)
+    elif fig_size=='middle':
+        _size=(12, 7)
+    elif fig_size=='small':
+        _size=(8, 4)
+    
+    #  取得圖片索引資訊(檔案路徑)
+    files = []
+    
+    if len(mask):
+        indexs = generator.index_array[mask][idx_start: idx_start+idx_batch_size]
+    else:
+        indexs = generator.index_array[idx_start: idx_start+idx_batch_size]        
+        
+    for idx in indexs:
+        file_path = os.path.join(generator.directory,generator.filenames[idx])
+        true_label = generator.classes[idx]
+        try:
+            predict_labels = predict_labels[idx]
+        except IndexError:
+            predict_labels is None
+
+        files.append(
+            (
+                file_path, 
+                true_label, 
+                predict_labels,
+                idx
+            )
+        )
+
+    #  繪製圖表
+    plt.figure(figsize=(_size))
+    i = 0
+    for file in files:
+        ax = plt.subplot(rows,cel_num,i+1)
+        #  取消x、y軸的刻度
+        plt.xticks(())        
+        plt.yticks(())
+        #  設置x軸的label為
+        ax.set_xlabel('True labels:' + str(file[1]) + ',idx:' + str(file[3]))
+        #  如果predict_labls不是空值，那就帶入資料
+        if file[2]:
+            ax.set_title('Predict labels:' + str(file[2]))        
+        img = io.imread(file[0])
+        ax.imshow(img)
+        #  換下一筆
+        i += 1                          
+         
+    #  確保資料呈現正常    
+    plt.tight_layout()    
+    plt.show()  	

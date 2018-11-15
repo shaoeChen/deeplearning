@@ -9,6 +9,8 @@ Created on Fri Jun 29 13:06:02 2018
         3. 照片檢閱:plt_image
 		4. 照片維度檢核:dimension_check
         5. 資料分割小批量:random_batch
+@module:
+        1. scikit-image==0.14
 @author: marty.chen
 """
 
@@ -22,67 +24,79 @@ import shutil
 import random
 
 
-def image_to_matrix1(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None, gray2img=False, path_file_only=False):
+def image_to_matrix(path_file, path_folder=None, image_exten='jpg', as_gray=False, label_num=None,
+                    gray2img=False, path_file_only=False, img_resize=None):
     """
     將資料夾路徑內的所有照片(依image_exten設置)轉為numpy array
-    如果需要同步產生等量的label向量可利用label_num來設置    
+    如果需要同步產生等量的label向量可利用label_num來設置
     環境內必需有安裝skimage，若無法滿足則需另外以pillow來執行，安裝anaconda的時候也會擁有skimage
-    
+
     parameter:
-        path_file:檔案清單，格式為list，可利用os.listdir來取得資料夾內的檔案清單
-        path_folder:資料夾路徑，當path_file_only為False的時候不得不None
-        image_exten:照片副檔名，預設為jpg
-        as_gray:是否灰值化
-        label:如果要產生label清單的話就輸入label，會依path_file長度來產生相對長度的類別清單
-        gray2img:將灰度圖轉rgb
-        path_file_only:部份情況下可能可以直接提供整個檔案清單，設置為True可不設置path_folder
-    
+        path_file ->str: 檔案清單，格式為list，可利用os.listdir來取得資料夾內的檔案清單
+        path_folder ->str: 資料夾路徑，當path_file_only為False的時候不得不None
+        image_exten ->str: 照片副檔名，預設為jpg
+        as_gray ->bool: 是否灰值化
+        label ->int:如果要產生label清單的話就輸入label，會依path_file長度來產生相對長度的類別清單
+        gray2img ->bool: 將灰度圖轉rgb
+        path_file_only ->bool: 部份情況下可能可以直接提供整個檔案清單，設置為True可不設置path_folder
+        img_resize ->tuple: 縮放之後的大小
+            resize之後，資料格式將從`np.uint8`變更為`np.float64`
+            因此實作上有乘上255並回轉為`np.uint8`
+            見參考來源說明
+
     return:
-        datasets:numpy array(m, n_h, n_w, n_c)
-            如果轉了灰度圖就不會有n_c
-        label:numpy array，該資料夾的label(m, )
-        
+        datasets: numpy array(m, n_h, n_w, n_c)
+            如果`gray2img=True`不會有n_c，因此使用上記得`reshape`或加入一個軸(axis)
+        label: numpy array，該資料夾的label(m, )
+
+    resource:
+        參考來源_resize：https://stackoverflow.com/questions/44257947/skimage-weird-results-of-resize-function
     example:
         1. 使用path_file搭配path_folder
             取得一個dataset，副檔名為bmp，label為1
-            ds_ng_1, ds_label_1 = image_to_matrix(file_ng_1, path_ng_1, 'bmp', False, 1)        
+            ds_ng_1, ds_label_1 = image_to_matrix(file_ng_1, path_ng_1, 'bmp', False, 1)
         2. 也可以試著利用glob來取得檔案清單
             full_path = glob.glob('d:\abc\*.jpg')
             這樣就可以取得abc資料夾底下所有的jpg的完整路徑清單
             ds_ng1, ds_label_1 = image_to_matrix(full_path, None, jpg, False, 1, False, True)
     """
     #  如果不是單純的上傳檔案路徑清單則path_folder一定要有東西，不能為None
-    if path_file_only == False:
-        if path_folder is None:
-            return None, None
-    
+    #  若為None就直接回傳None, None避免程式中斷
+    if path_file_only == False and path_folder is None:
+        return None, None
+
     _datasets = []
-    for file in path_file:       
+    for file in path_file:
+        #  確認副檔名正確才處理，不正確的直接pass掉
         if file.endswith(image_exten):
-            if gray2img:
-                if path_file_only:
-                    img_gray = io.imread(file, as_grey=as_gray)
-                else:
-                    img_gray = io.imread(os.path.join(path_folder, file), as_grey=as_gray)
-                img = color.gray2rgb(img_gray)
-                _datasets.append(img)
+            #  依不同資料來源格式分別讀入照片
+            if path_file_only:
+                img = io.imread(file, as_gray=as_gray)
             else:
-                if path_file_only:
-                    _datasets.append(io.imread(file, as_grey=as_gray))
-                else:
-                    _datasets.append(io.imread(os.path.join(path_folder, file), as_grey=as_gray))
+                img = io.imread(os.path.join(path_folder, file), as_gray=as_gray)
+
+                #  是否將灰度圖轉rgb照片
+            if gray2img:
+                img = color.gray2rgb(img_gray)
+
+            #  是否縮放照片
+            if img_resize:
+                img = resize(img, img_resize)
+                img = img * 255
+                img = img.astype(np.uint8)
+
+            _datasets.append(img)
         else:
             continue
-            
+
     datasets = np.asarray(_datasets)
-        
-    
+
     if isinstance(label_num, int):
         #  必需為int格式
-        label = np.ones(len(_datasets)) * label_num      
+        label = np.ones(len(_datasets)) * label_num
     else:
         label = None
-        
+
     return datasets, label
 
 

@@ -166,7 +166,8 @@ def utils_predict_validator(model, datasets, need_prob=False):
             
     return datasets	
 	
-def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0, idx_batch_size=10, cel_num=5, fig_size='big'):
+def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0, idx_batch_size=10,
+								cel_num=5, fig_size='big', as_gray=None):
     """
     用來檢閱照片，了解各照片的原始label與預測的label，以便於理解誤判原因
     此function需搭配keras.generator使用，利用生成器取得照片
@@ -186,6 +187,7 @@ def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0,
             big: 16,9
             middle: 12,7
             small: 8,4
+		as_gray: 如果需要列印gray的話就輸入gray，二值化就binary，None則列印rgb	
         
     當每次讀取批量>20的時候會以20取值
     如果照片想要大點來看，就必需將cel_num設置小一點，然後設置size為big或是middle
@@ -251,7 +253,7 @@ def plt_image_from_generator(generator, mask=[], predict_labels=[], idx_start=0,
         if file[2]:
             ax.set_title('Predict labels:' + str(file[2]))        
         img = io.imread(file[0])
-        ax.imshow(img)
+        ax.imshow(img, cmap=as_gray)
         #  換下一筆
         i += 1                          
          

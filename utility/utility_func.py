@@ -14,7 +14,7 @@ Created on Fri Jun 29 13:06:02 2018
 @author: marty.chen
 """
 
-from skimage import io, color
+from skimage import io, color, transform
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -301,7 +301,7 @@ def random_batch(datasets, label, batch_size=64, seed=0):
 	
 
 
-def move_file(source_data_path, subfolder_path, move_number, move_to_folder='test', random_seed=10):
+def move_file(source_data_path, subfolder_path, move_number, move_to_folder='test', is_transfer=False, random_seed=10, **kwargs):
     """
     description:
         模型訓練的時候如果有需求區分資料集為訓練資料集與測試資料集，讓keras可以至指定資料集直接讀取資料的時候
@@ -317,6 +317,8 @@ def move_file(source_data_path, subfolder_path, move_number, move_to_folder='tes
             會將相對應的數量搬至指定資料夾
         move_to_folder: 預設將分割資料搬至source_data_path目錄下的test資料夾
             保存於test\subfolder_path\，避免搬移之後忘記自己搬去那了
+        is_transfer: 是否執行轉檔
+            搬運之後如果需求轉檔可以設置為True，並注意提供參數transfer_ext='需求副檔名'
         random_seed: 亂數種子
         
     example:
@@ -332,7 +334,9 @@ def move_file(source_data_path, subfolder_path, move_number, move_to_folder='tes
 	    
 		
     """
-    _exten = 'jpg'
+    config = {'exten':'jpg'}
+    config.update(**kwargs)
+    _exten = config.get('exten')    
     
     #  預計搬移的資料夾路徑組合成絕對路徑
     move_to_folder = os.path.join(source_data_path, move_to_folder)
@@ -363,3 +367,47 @@ def move_file(source_data_path, subfolder_path, move_number, move_to_folder='tes
     #  檔案搬運
     for index in random_index:
         shutil.move(data_list[index], os.path.join(move_to_folder, subfolder_path))	
+
+    if is_transfer:
+    #  搬檔之後如果需求調整副檔名可批處理
+        target_folder = os.path.join(move_to_folder, subfolder_path)
+        transfer_img(target_folder,
+                     extension=_exten,
+                     transfer_ext=config.get('transfer_ext'),
+                     img_shape=_transfer_shape)    
+            
+            
+def transfer_img(data_dir, extension='jpg', transfer_ext='jpg', img_shape=None):
+    """照片格式轉存
+    
+    function: 
+        利用`skimage.io.ImageCollection做資料夾內檔案批處理`
+    
+    parameters:
+        data_dir: 目錄路徑
+        extension: 批處理的副檔名
+        transfer_ext: 預計轉存副檔名
+        image_shape: 轉存後dimension
+    """
+    #  定義ImageCollection
+    coll = io.ImageCollection(data_dir + '/*.' + extension, load_func=_img_transfer, img_shape=img_shape)
+    #  迴圈轉存照片格式
+    for i in range(len(coll)):
+        #  檔案名稱取代掉原始副檔名，加入預計調整的副檔名
+        #  這種作法的缺點是不能在檔案名稱內有jpg,png,bmp....等字眼出現，需特別注意
+        io.imsave(coll.files[i].replace(extension, transfer_ext), coll[i])        
+            
+            
+            
+def _img_transfer(img, img_shape=None):
+    """io.ImageCollection使用的load_func
+    
+    parameter:
+        img_shape: 如果需求調整尺寸，記得提供參數
+    """
+    rgb=io.imread(img)   
+    if img_shape is None:
+        return rgb
+    else:
+        img = transform.resize(rgb, img_shape)  
+        return img    
